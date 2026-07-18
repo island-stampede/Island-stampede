@@ -1,0 +1,45 @@
+name: Expo Web Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Enable Yarn
+        run: corepack enable
+
+      - name: Install
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: TypeScript Check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Expo Web Build
+        working-directory: frontend
+        env:
+          EXPO_PUBLIC_BACKEND_URL: https://api.example.com
+          EXPO_PUBLIC_SITE_URL: https://island-stampede.vercel.app
+        run: yarn build
+
+      - name: Verify Export
+        run: |
+          test -f frontend/web-build/index.html
+          echo "✅ BUILD SUCCESS"

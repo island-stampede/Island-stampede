@@ -1,23 +1,37 @@
 python3 - <<'PY'
 from pathlib import Path
+import re
 
-p = Path(".github/workflows/build.yml")
+workflow = Path(".github/workflows/build.yml")
 
-if not p.exists():
-    raise SystemExit("❌ build.yml not found")
+if not workflow.exists():
+    raise SystemExit("❌ .github/workflows/build.yml not found")
 
-text = p.read_text()
+text = workflow.read_text()
 
-text = text.replace(
-    "cache-dependency-path: frontend/yarn.lock",
-    "cache-dependency-path: frontend/package.json"
+# Choose the best cache dependency file
+if Path("frontend/yarn.lock").exists():
+    cache = "frontend/yarn.lock"
+elif Path("frontend/package-lock.json").exists():
+    cache = "frontend/package-lock.json"
+elif Path("frontend/pnpm-lock.yaml").exists():
+    cache = "frontend/pnpm-lock.yaml"
+elif Path("frontend/package.json").exists():
+    cache = "frontend/package.json"
+else:
+    raise SystemExit("❌ No dependency file found in frontend/")
+
+text = re.sub(
+    r"cache-dependency-path:\s*.*",
+    f"cache-dependency-path: {cache}",
+    text
 )
 
-p.write_text(text)
+workflow.write_text(text)
 
-print("✅ Updated GitHub Actions cache path")
+print(f"✅ Updated cache-dependency-path to: {cache}")
 PY
 
 git add .github/workflows/build.yml
-git commit -m "Fix GitHub Actions yarn cache path"
+git commit -m "Fix GitHub Actions dependency cache" || echo "Nothing to commit"
 git push origin website-clone
